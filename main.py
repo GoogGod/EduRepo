@@ -1,74 +1,94 @@
-import pygame as pg
+import pygame
+import sys
+from random import choice
 
-pg.init()
+# Initialize Pygame
+pygame.init()
 
-# RGB
-colors = {
-    "blue": (60, 80, 230),
-    "background": (255, 255, 255),
-    "white": (255, 255, 255),
-    "black": (0,0,0),
-    "red": (255, 0, 0),
-    "green": (0, 255, 0),
-    "yellow": (255, 255, 0)
-}
+# Set up some constants and initialize variables
+WIDTH, HEIGHT = 1280, 720
+FPS = 60
+PADDLE_WIDTH = 15
+BALL_SIZE = 15
+SPEED = 3
 
-screen_width = 800
-screen_height = 600
+C_WHITE = (255, 255, 255)
 
-screen = pg.display.set_mode((screen_width, screen_height))
-clock = pg.time.Clock()
-pg.display.set_caption("My first game")
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+clock = pygame.time.Clock()
 
-running = True
+# Define classes for paddle and ball
+class Paddle:
+    def __init__(self, x, y):
+        self.rect = pygame.Rect(x, y, PADDLE_WIDTH, 100)
 
-class Vector():
-    def __init__(self, x : float | tuple, y):
-        if isinstance(x, tuple):
-            self.x = x[0]
-            self.y = x[1]
-            
-        elif isinstance(y, float):
-            self.x = x
-            self.y = y
-        
-    def __add__(self, other):
-        return Vector(self.x + other.x, self.y + other.y)
-    
-    def __sub__(self, other):
-        return Vector(self.x - other.x, self.y - other.y)
-    
-    def __iadd__(self, other):
-        return self + other
-    
+    def move(self, direction):
+        if direction == 'up' and self.rect.y > 0:
+            self.rect.y -= SPEED
+        elif direction == 'down' and self.rect.y < HEIGHT - 100:
+            self.rect.y += SPEED
 
-class Ball():
-    def __init__(self, x, y, radius, color, vel : Vector | tuple | None):
-        self.cords = Vector(x, y)
-        self.radius = radius
-        self.color = color
-        self.velocity = vel
-        
-        self.update()
-        
+class Ball:
+    def __init__(self, x, y):
+        self.rect = pygame.Rect(x, y, BALL_SIZE, BALL_SIZE)
+        self.speed_x = SPEED * (choice([-1, 1]))
+        self.speed_y = SPEED * (choice([-1, 1]))
+
     def update(self):
-        self.cords += self.velocity
-        pg.draw.circle(screen, self.color, self.cords, self.radius)
+        self.rect.x += self.speed_x
+        self.rect.y += self.speed_y
 
-ball = Ball(0,0,10,colors["white"])
+# Create paddles and ball instances
+left_paddle = Paddle(50, HEIGHT // 2 - 50)
+right_paddle = Paddle(WIDTH - 50 - PADDLE_WIDTH, HEIGHT // 2 - 50)
+ball = Ball(WIDTH // 2, HEIGHT // 2)
 
+# Main game loop
+running = True
 while running:
-    for event in pg.event.get():
-        if event.type == pg.QUIT:
-            running = False    
-    
-    if x < 20 or x > screen_width-20: acc = -acc
-    x += acc
-    
-    screen.fill(colors["black"])
+    # Event handling
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+
+    keys = pygame.key.get_pressed()
+    left_paddle.move('up' if keys[pygame.K_w] else 'down' if keys[pygame.K_s] else None)
+    right_paddle.move('up' if keys[pygame.K_UP] else 'down' if keys[pygame.K_DOWN] else None)
+
+    # Update game objects
     ball.update()
-    
-    clock.tick(144)
-    pg.display.flip()
-    
-pg.quit()
+
+    # Check for collisions with screen boundaries and paddles
+    if ball.rect.top <= 0 or ball.rect.bottom >= HEIGHT:
+        ball.speed_y *= -1
+
+    if ball.rect.left <= left_paddle.rect.right and \
+       ball.rect.colliderect(left_paddle.rect):
+        ball.speed_x *= -1
+
+    if ball.rect.right >= right_paddle.rect.left and \
+       ball.rect.colliderect(right_paddle.rect):
+        ball.speed_x *= -1
+
+    # Check for scoring
+    if ball.rect.left <= 0:
+        print("Right player scores!")
+        ball.__init__(WIDTH // 2, HEIGHT // 2)
+
+    elif ball.rect.right >= WIDTH:
+        print("Left player scores!")
+        ball.__init__(WIDTH // 2, HEIGHT // 2)
+
+    # Draw everything
+    screen.fill((0, 0, 0))
+    pygame.draw.rect(screen, C_WHITE, left_paddle.rect)
+    pygame.draw.rect(screen, C_WHITE, right_paddle.rect)
+    pygame.draw.ellipse(screen, C_WHITE, ball.rect)
+
+    # Update display and tick clock
+    pygame.display.flip()
+    clock.tick(FPS)
+
+# Quit Pygame
+pygame.quit()
+sys.exit()
