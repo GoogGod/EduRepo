@@ -1,13 +1,14 @@
 import pygame
 import sys
 from random import choice
+from time import sleep
 
 # Initialize Pygame
 pygame.init()
 
 # Set up some constants and initialize variables
 WIDTH, HEIGHT = 1280, 720
-FPS = 60
+FPS = 144
 PADDLE_WIDTH = 15
 BALL_SIZE = 15
 SPEED = 3
@@ -16,6 +17,7 @@ C_WHITE = (255, 255, 255)
 
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
+font = pygame.font.Font('bahnschrift.ttf', 36)
 
 # Define classes for paddle and ball
 class Paddle:
@@ -45,6 +47,9 @@ ball = Ball(WIDTH // 2, HEIGHT // 2)
 
 # Main game loop
 running = True
+wait_score = False
+score_left = 0
+score_right = 0
 while running:
     # Event handling
     for event in pygame.event.get():
@@ -57,7 +62,19 @@ while running:
 
     # Update game objects
     ball.update()
-
+    if wait_score: 
+        wait_score = not wait_score
+        text = font.render(f"{score_left} : {score_right}", True, C_WHITE)
+        screen.blit(text, text.get_rect(center=(WIDTH // 2, 30)))
+        for i in range(30):
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+            pygame.display.flip()
+            clock.tick(FPS)
+            sleep(0.1)
+    
     # Check for collisions with screen boundaries and paddles
     if ball.rect.top <= 0 or ball.rect.bottom >= HEIGHT:
         ball.speed_y *= -1
@@ -74,10 +91,18 @@ while running:
     if ball.rect.left <= 0:
         print("Right player scores!")
         ball.__init__(WIDTH // 2, HEIGHT // 2)
+        left_paddle.__init__(50, HEIGHT // 2 - 50)
+        right_paddle.__init__(WIDTH - 50 - PADDLE_WIDTH, HEIGHT // 2 - 50)
+        wait_score = True
+        score_right += 1
 
     elif ball.rect.right >= WIDTH:
         print("Left player scores!")
         ball.__init__(WIDTH // 2, HEIGHT // 2)
+        left_paddle.__init__(50, HEIGHT // 2 - 50)
+        right_paddle.__init__(WIDTH - 50 - PADDLE_WIDTH, HEIGHT // 2 - 50)
+        wait_score = True
+        score_left += 1
 
     # Draw everything
     screen.fill((0, 0, 0))
